@@ -1,0 +1,547 @@
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:util="http://www.springframework.org/schema/util"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-3.0.xsd http://www.springframework.org/schema/util http://www.springframework.org/schema/util/spring-util.xsd">
+
+    <bean class="org.springframework.beans.factory.config.PropertyPlaceholderConfigurer">
+        <property name="properties">
+            <value>
+solrHost=localhost:8983
+            </value>
+        </property>
+    </bean>
+
+    <bean id="solrQueryHandler" class="gturner.expert.query.SolrQueryManager">
+        <constructor-arg value="http://${solrHost}/solr"/>
+        <constructor-arg>
+            <map>
+                <entry key="wikipedia" value="${solrHost}/solr/wikipedia"/>
+                <entry key="wiktionary" value="${solrHost}/solr/wiktionary"/>
+                <entry key="wikiquote" value="${solrHost}/solr/wikiquote"/>
+                <entry key="wikibooks" value="${solrHost}/solr/wikibooks"/>
+                <entry key="wikinews" value="${solrHost}/solr/wikinews"/>
+                <entry key="imdb" value="${solrHost}/solr/imdb"/>
+            </map>
+        </constructor-arg>
+        <property name="rows" value="250"/>
+        <property name="maxRows" value="250"/>
+    </bean>
+
+    <bean id="expert.fillInBlank" class="gturner.expert.impl.FillInBlankExpert">
+        <constructor-arg>
+            <bean class="gturner.expert.query.CachedQueryManager">
+                <constructor-arg ref="solrQueryHandler"/>
+                <constructor-arg value="100"/>
+            </bean>
+        </constructor-arg>
+    </bean>
+
+    <bean id="solver.puzzleSolver.threadPool" class="java.util.concurrent.Executors" factory-method="newFixedThreadPool">
+        <!--<constructor-arg value="16"/>-->
+        <constructor-arg value="1"/>
+    </bean>
+
+    <bean id="solver.puzzleSolver.activeInstance" parent="solver.puzzleSolver.scenario0new"/>
+
+    <bean id="solver.puzzleSolver.scenario0" class="gturner.solver.impl.PuzzleSolver">
+        <constructor-arg>
+            <bean class="gturner.expert.impl.ConstraintFilterExpert">
+                <constructor-arg>
+                    <bean class="gturner.expert.impl.ClusteringExpert">
+                        <constructor-arg>
+                            <bean class="gturner.expert.impl.ScoreMutator">
+                                <constructor-arg ref="expert.fillInBlank"/>
+                                <constructor-arg value="false"/>
+                                <constructor-arg value="classpath:george-clues-score.txt" type="java.io.InputStream"/>
+                            </bean>
+                        </constructor-arg>
+                    </bean>
+                </constructor-arg>
+            </bean>
+        </constructor-arg>
+        <constructor-arg ref="solver.puzzleSolver.threadPool"/>
+        <constructor-arg value="3"/>
+    </bean>
+
+    <bean id="solver.puzzleSolver.scenario0new" class="gturner.solver.impl.WeightAwarePuzzleSolver">
+        <constructor-arg>
+            <bean class="gturner.expert.impl.ConstraintFilterExpert">
+                <constructor-arg>
+                    <bean class="gturner.expert.impl.AllAnswersExpert">
+                        <constructor-arg>
+                            <bean class="gturner.expert.impl.SolrPhraseExpert">
+                                <constructor-arg>
+                                    <bean class="gturner.expert.query.CachedQueryManager">
+                                        <constructor-arg>
+                                            <bean class="gturner.expert.query.SolrQueryManager">
+                                                <constructor-arg value="http://${solrHost}/solr"/>
+                                                <constructor-arg>
+                                                    <map>
+                                                        <entry key="wikipedia" value="${solrHost}/solr/wikipedia"/>
+                                                        <entry key="wiktionary" value="${solrHost}/solr/wiktionary"/>
+                                                        <entry key="wikiquote" value="${solrHost}/solr/wikiquote"/>
+                                                        <entry key="wikibooks" value="${solrHost}/solr/wikibooks"/>
+                                                        <entry key="wikinews" value="${solrHost}/solr/wikinews"/>
+                                                        <entry key="imdb" value="${solrHost}/solr/imdb"/>
+                                                    </map>
+                                                </constructor-arg>
+                                                <property name="rows" value="500"/>
+                                                <property name="maxRows" value="500"/>
+                                                <property name="qf" value="title^20 keywords^10 text^0.5"/>
+                                            </bean>
+                                        </constructor-arg>
+                                        <constructor-arg value="250"/>
+                                    </bean>
+                                </constructor-arg>
+                                <constructor-arg>
+                                    <list>
+                                        <value>wikipedia</value>
+                                        <value>wiktionary</value>
+                                        <value>wikiquote</value>
+                                        <value>imdb</value>
+                                    </list>
+                                </constructor-arg>
+                                <constructor-arg ref="english.stopWords"/>
+                            </bean>
+                        </constructor-arg>
+                        <constructor-arg value="classpath:george-clues-score.txt" type="java.io.InputStream"/>
+                    </bean>
+                </constructor-arg>
+            </bean>
+        </constructor-arg>
+        <constructor-arg ref="solver.puzzleSolver.threadPool"/>
+        <constructor-arg value="3"/>
+        <constructor-arg value="true"/>
+    </bean>
+
+    <bean id="solver.puzzleSolver.scenario0new.cheater" name="solver.puzzleSolver.scenario11" class="gturner.solver.impl.PuzzleSolver">
+        <constructor-arg>
+            <bean class="gturner.expert.impl.ConstraintFilterExpert">
+                <constructor-arg>
+                    <bean class="gturner.expert.impl.scenario.AnswerChooserExpert">
+                        <constructor-arg>
+                            <bean class="gturner.expert.impl.SolrPhraseExpert">
+                                <constructor-arg>
+                                    <bean class="gturner.expert.query.CachedQueryManager">
+                                        <constructor-arg>
+                                            <bean class="gturner.expert.query.SolrQueryManager">
+                                                <constructor-arg value="http://${solrHost}/solr"/>
+                                                <constructor-arg>
+                                                    <map>
+                                                        <entry key="wikipedia" value="${solrHost}/solr/wikipedia"/>
+                                                        <entry key="wiktionary" value="${solrHost}/solr/wiktionary"/>
+                                                        <entry key="wikiquote" value="${solrHost}/solr/wikiquote"/>
+                                                        <entry key="wikibooks" value="${solrHost}/solr/wikibooks"/>
+                                                        <entry key="wikinews" value="${solrHost}/solr/wikinews"/>
+                                                        <entry key="imdb" value="${solrHost}/solr/imdb"/>
+                                                    </map>
+                                                </constructor-arg>
+                                                <property name="rows" value="500"/>
+                                                <property name="maxRows" value="500"/>
+                                                <property name="qf" value="title^20 keywords^10 text^0.5"/>
+                                            </bean>
+                                        </constructor-arg>
+                                        <constructor-arg value="250"/>
+                                    </bean>
+                                </constructor-arg>
+                                <constructor-arg>
+                                    <list>
+                                        <value>wikipedia</value>
+                                        <value>wiktionary</value>
+                                        <value>wikiquote</value>
+                                        <value>imdb</value>
+                                    </list>
+                                </constructor-arg>
+                                <constructor-arg ref="english.stopWords"/>
+                            </bean>
+                        </constructor-arg>
+                    </bean>
+                </constructor-arg>
+            </bean>
+        </constructor-arg>
+        <constructor-arg ref="solver.puzzleSolver.threadPool"/>
+        <constructor-arg value="0"/>
+    </bean>
+
+    <bean id="solver.puzzleSolver.scenario1" class="gturner.solver.impl.PuzzleSolver">
+        <constructor-arg>
+            <bean class="gturner.expert.impl.ConstraintFilterExpert">
+                <constructor-arg>
+                    <bean class="gturner.expert.impl.scenario.RandomChooserExpert">
+                        <constructor-arg value="classpath:george-clues-score.txt" type="java.io.InputStream"/>
+                    </bean>
+                </constructor-arg>
+            </bean>
+        </constructor-arg>
+        <constructor-arg ref="solver.puzzleSolver.threadPool"/>
+        <constructor-arg value="3"/>
+    </bean>
+
+    <bean id="solver.puzzleSolver.scenario2" class="gturner.solver.impl.PuzzleSolver">
+        <constructor-arg>
+            <bean class="gturner.expert.impl.ConstraintFilterExpert">
+                <constructor-arg>
+                    <bean class="gturner.expert.impl.scenario.AnswerChooserExpert">
+                        <constructor-arg>
+                            <bean class="gturner.expert.impl.scenario.SimpleFillInBlankExpert">
+                                <constructor-arg>
+                                    <bean class="gturner.expert.query.CachedQueryManager">
+                                        <constructor-arg ref="solrQueryHandler"/>
+                                        <constructor-arg value="100"/>
+                                    </bean>
+                                </constructor-arg>
+                                <constructor-arg>
+                                    <list>
+                                        <value>wikipedia</value>
+                                    </list>
+                                </constructor-arg>
+                                <constructor-arg value="false"/>
+                            </bean>
+                        </constructor-arg>
+                    </bean>
+                </constructor-arg>
+            </bean>
+        </constructor-arg>
+        <constructor-arg ref="solver.puzzleSolver.threadPool"/>
+        <constructor-arg value="0"/>
+    </bean>
+
+    <bean id="solver.puzzleSolver.scenario3" class="gturner.solver.impl.PuzzleSolver">
+        <constructor-arg>
+            <bean class="gturner.expert.impl.ConstraintFilterExpert">
+                <constructor-arg>
+                    <bean class="gturner.expert.impl.scenario.AnswerChooserExpert">
+                        <constructor-arg>
+                            <bean class="gturner.expert.impl.scenario.SimpleFillInBlankExpert">
+                                <constructor-arg>
+                                    <bean class="gturner.expert.query.CachedQueryManager">
+                                        <constructor-arg ref="solrQueryHandler"/>
+                                        <constructor-arg value="100"/>
+                                    </bean>
+                                </constructor-arg>
+                                <constructor-arg>
+                                    <list>
+                                        <value>imdb</value>
+                                    </list>
+                                </constructor-arg>
+                                <constructor-arg value="false"/>
+                            </bean>
+                        </constructor-arg>
+                    </bean>
+                </constructor-arg>
+            </bean>
+        </constructor-arg>
+        <constructor-arg ref="solver.puzzleSolver.threadPool"/>
+        <constructor-arg value="0"/>
+    </bean>
+
+    <bean id="solver.puzzleSolver.scenario4" class="gturner.solver.impl.PuzzleSolver">
+        <constructor-arg>
+            <bean class="gturner.expert.impl.ConstraintFilterExpert">
+                <constructor-arg>
+                    <bean class="gturner.expert.impl.scenario.AnswerChooserExpert">
+                        <constructor-arg>
+                            <bean class="gturner.expert.impl.scenario.SimpleFillInBlankExpert">
+                                <constructor-arg>
+                                    <bean class="gturner.expert.query.CachedQueryManager">
+                                        <constructor-arg ref="solrQueryHandler"/>
+                                        <constructor-arg value="100"/>
+                                    </bean>
+                                </constructor-arg>
+                                <constructor-arg>
+                                    <list>
+                                    </list>
+                                </constructor-arg>
+                                <constructor-arg value="true"/>
+                            </bean>
+                        </constructor-arg>
+                    </bean>
+                </constructor-arg>
+            </bean>
+        </constructor-arg>
+        <constructor-arg ref="solver.puzzleSolver.threadPool"/>
+        <constructor-arg value="0"/>
+    </bean>
+
+    <bean id="solver.puzzleSolver.scenario5" class="gturner.solver.impl.PuzzleSolver">
+        <constructor-arg>
+            <bean class="gturner.expert.impl.ConstraintFilterExpert">
+                <constructor-arg>
+                    <bean class="gturner.expert.impl.scenario.AnswerChooserExpert">
+                        <constructor-arg>
+                            <bean class="gturner.expert.impl.scenario.SimpleFillInBlankExpert">
+                                <constructor-arg>
+                                    <bean class="gturner.expert.query.CachedQueryManager">
+                                        <constructor-arg ref="solrQueryHandler"/>
+                                        <constructor-arg value="100"/>
+                                    </bean>
+                                </constructor-arg>
+                                <constructor-arg>
+                                    <list>
+                                        <value>wiktionary</value>
+                                    </list>
+                                </constructor-arg>
+                                <constructor-arg value="false"/>
+                            </bean>
+                        </constructor-arg>
+                    </bean>
+                </constructor-arg>
+            </bean>
+        </constructor-arg>
+        <constructor-arg ref="solver.puzzleSolver.threadPool"/>
+        <constructor-arg value="0"/>
+    </bean>
+
+    <bean id="solver.puzzleSolver.scenario6" class="gturner.solver.impl.PuzzleSolver">
+        <constructor-arg>
+            <bean class="gturner.expert.impl.ConstraintFilterExpert">
+                <!--<constructor-arg>
+                    <bean class="gturner.expert.impl.ClusteringExpert">-->
+                        <constructor-arg>
+                            <bean class="gturner.expert.impl.ScoreMutator">
+                                <constructor-arg ref="expert.fillInBlank"/>
+                                <constructor-arg value="true"/>
+                                <constructor-arg value="classpath:george-clues-score.txt" type="java.io.InputStream"/>
+                            </bean>
+                        </constructor-arg>
+                    <!--</bean>
+                </constructor-arg>-->
+            </bean>
+        </constructor-arg>
+        <constructor-arg ref="solver.puzzleSolver.threadPool"/>
+        <constructor-arg value="3"/>
+    </bean>
+
+    <bean id="solver.puzzleSolver.scenario7" class="gturner.solver.impl.PuzzleSolver">
+        <constructor-arg>
+            <bean class="gturner.expert.impl.ConstraintFilterExpert">
+                <constructor-arg>
+                    <bean class="gturner.expert.impl.scenario.AnswerChooserExpert">
+                        <constructor-arg ref="expert.fillInBlank"/>
+                    </bean>
+                </constructor-arg>
+            </bean>
+        </constructor-arg>
+        <constructor-arg ref="solver.puzzleSolver.threadPool"/>
+        <constructor-arg value="0"/>
+    </bean>
+
+    <bean id="solver.puzzleSolver.scenario8" class="gturner.solver.impl.PuzzleSolver">
+        <constructor-arg>
+            <bean class="gturner.expert.impl.ConstraintFilterExpert">
+                <constructor-arg>
+                    <bean class="gturner.expert.impl.scenario.HumanExpert">
+                        <constructor-arg value="60"/>
+                        <constructor-arg value="50"/>
+                        <constructor-arg value="1000"/>
+                        <constructor-arg value="classpath:george-clues-score.txt" type="java.io.InputStream"/>
+                    </bean>
+                </constructor-arg>
+            </bean>
+        </constructor-arg>
+        <constructor-arg ref="solver.puzzleSolver.threadPool"/>
+        <constructor-arg value="3"/>
+    </bean>
+
+    <bean id="solver.puzzleSolver.scenario9" class="gturner.solver.impl.PuzzleSolver">
+        <constructor-arg>
+            <bean class="gturner.expert.impl.ConstraintFilterExpert">
+                <constructor-arg>
+                    <bean class="gturner.expert.impl.scenario.HumanExpert">
+                        <constructor-arg value="250"/>
+                        <constructor-arg value="500"/>
+                        <constructor-arg value="1000"/>
+                        <constructor-arg value="classpath:george-clues-score.txt" type="java.io.InputStream"/>
+                    </bean>
+                </constructor-arg>
+            </bean>
+        </constructor-arg>
+        <constructor-arg ref="solver.puzzleSolver.threadPool"/>
+        <constructor-arg value="3"/>
+    </bean>
+
+    <bean id="solver.puzzleSolver.scenario10" class="gturner.solver.impl.PuzzleSolver">
+        <constructor-arg>
+            <bean class="gturner.expert.impl.scenario.OmniscientExpert">
+                <constructor-arg value="500"/>
+            </bean>
+        </constructor-arg>
+        <constructor-arg ref="solver.puzzleSolver.threadPool"/>
+        <constructor-arg value="0"/>
+    </bean>
+
+    <util:list id="english.stopWords">
+        <value>ABOUT</value>
+        <value>ABOVE</value>
+        <value>AFTER</value>
+        <value>AGAIN</value>
+        <value>AGAINST</value>
+        <value>ALL</value>
+        <value>AM</value>
+        <value>AN</value>
+        <value>AND</value>
+        <value>ANY</value>
+        <value>ARE</value>
+        <value>ARENT</value>
+        <value>AS</value>
+        <value>AT</value>
+        <value>BE</value>
+        <value>BECAUSE</value>
+        <value>BEEN</value>
+        <value>BEFORE</value>
+        <value>BEING</value>
+        <value>BELOW</value>
+        <value>BETWEEN</value>
+        <value>BOTH</value>
+        <value>BUT</value>
+        <value>BY</value>
+        <value>CANT</value>
+        <value>CANNOT</value>
+        <value>COULD</value>
+        <value>COULDNT</value>
+        <value>DID</value>
+        <value>DIDNT</value>
+        <value>DO</value>
+        <value>DOES</value>
+        <value>DOESNT</value>
+        <value>DOING</value>
+        <value>DONT</value>
+        <value>DOWN</value>
+        <value>DURING</value>
+        <value>EACH</value>
+        <value>FEW</value>
+        <value>FOR</value>
+        <value>FROM</value>
+        <value>FURTHER</value>
+        <value>HAD</value>
+        <value>HADNT</value>
+        <value>HAS</value>
+        <value>HASNT</value>
+        <value>HAVE</value>
+        <value>HAVENT</value>
+        <value>HAVING</value>
+        <value>HE</value>
+        <value>HED</value>
+        <value>HELL</value>
+        <value>HES</value>
+        <value>HER</value>
+        <value>HERE</value>
+        <value>HERES</value>
+        <value>HERS</value>
+        <value>HERSELF</value>
+        <value>HIM</value>
+        <value>HIMSELF</value>
+        <value>HIS</value>
+        <value>HOW</value>
+        <value>HOWS</value>
+        <value>ID</value>
+        <value>ILL</value>
+        <value>IM</value>
+        <value>IVE</value>
+        <value>IF</value>
+        <value>IN</value>
+        <value>INTO</value>
+        <value>IS</value>
+        <value>ISNT</value>
+        <value>IT</value>
+        <value>ITS</value>
+        <value>ITS</value>
+        <value>ITSELF</value>
+        <value>LETS</value>
+        <value>ME</value>
+        <value>MORE</value>
+        <value>MOST</value>
+        <value>MUSTNT</value>
+        <value>MY</value>
+        <value>MYSELF</value>
+        <value>NO</value>
+        <value>NOR</value>
+        <value>NOT</value>
+        <value>OF</value>
+        <value>OFF</value>
+        <value>ON</value>
+        <value>ONCE</value>
+        <value>ONLY</value>
+        <value>OR</value>
+        <value>OTHER</value>
+        <value>OUGHT</value>
+        <value>OUR</value>
+        <value>OURS</value>
+        <value>OURSELVES</value>
+        <value>OUT</value>
+        <value>OVER</value>
+        <value>OWN</value>
+        <value>SAME</value>
+        <value>SHANT</value>
+        <value>SHE</value>
+        <value>SHED</value>
+        <value>SHELL</value>
+        <value>SHES</value>
+        <value>SHOULD</value>
+        <value>SHOULDNT</value>
+        <value>SO</value>
+        <value>SOME</value>
+        <value>SUCH</value>
+        <value>THAN</value>
+        <value>THAT</value>
+        <value>THATS</value>
+        <value>THE</value>
+        <value>THEIR</value>
+        <value>THEIRS</value>
+        <value>THEM</value>
+        <value>THEMSELVES</value>
+        <value>THEN</value>
+        <value>THERE</value>
+        <value>THERES</value>
+        <value>THESE</value>
+        <value>THEY</value>
+        <value>THEYD</value>
+        <value>THEYLL</value>
+        <value>THEYRE</value>
+        <value>THEYVE</value>
+        <value>THIS</value>
+        <value>THOSE</value>
+        <value>THROUGH</value>
+        <value>TO</value>
+        <value>TOO</value>
+        <value>UNDER</value>
+        <value>UNTIL</value>
+        <value>UP</value>
+        <value>VERY</value>
+        <value>WAS</value>
+        <value>WASNT</value>
+        <value>WE</value>
+        <value>WED</value>
+        <value>WELL</value>
+        <value>WERE</value>
+        <value>WEVE</value>
+        <value>WERE</value>
+        <value>WERENT</value>
+        <value>WHAT</value>
+        <value>WHATS</value>
+        <value>WHEN</value>
+        <value>WHENS</value>
+        <value>WHERE</value>
+        <value>WHERES</value>
+        <value>WHICH</value>
+        <value>WHILE</value>
+        <value>WHO</value>
+        <value>WHOS</value>
+        <value>WHOM</value>
+        <value>WHY</value>
+        <value>WHYS</value>
+        <value>WITH</value>
+        <value>WONT</value>
+        <value>WOULD</value>
+        <value>WOULDNT</value>
+        <value>YOU</value>
+        <value>YOUD</value>
+        <value>YOULL</value>
+        <value>YOURE</value>
+        <value>YOUVE</value>
+        <value>YOUR</value>
+        <value>YOURS</value>
+        <value>YOURSELF</value>
+        <value>YOURSELVES</value>
+    </util:list>
+
+</beans>
